@@ -10,11 +10,11 @@ class WebhooksController < ApplicationController
     from_number = params[:From]
 
     # create a new TwiML response
-    response = Twilio::TwiML::Response.new do |r|
+    response = Twilio::TwiML::VoiceResponse.new
       # <Say> a message to the caller
-      r.Say "Thanks for calling! Your phone number is #{from_number}. I got your call because of Twilio's webhook. Goodbye!", :voice => 'alice', :language => 'en-gb'
-    end
-    render text: response.text
+    response.say("Thanks for calling! Your phone number is #{from_number}. I got your call because of Twilio's webhook. Goodbye!",
+      :voice => 'alice', :language => 'en-gb')
+    render text: response.to_s
   end
 
   # SMS Request URL - receives incoming messages from Twilio
@@ -23,12 +23,11 @@ class WebhooksController < ApplicationController
     msg_length = params[:Body].length
 
     # <Message> a text bac to the person who texted us
-    response = Twilio::TwiML::Response.new do |r|
-      r.Sms  "Your text to me was #{msg_length} characters long. Webhooks are neat :)"
-    end
+    response = Twilio::TwiML::MessagingResponse.new
+    response.message("Your text to me was #{msg_length} characters long. Webhooks are neat :)")
 
     # Return the TwiML
-    render text: response.text
+    render text: response.to_s
   end
 
 
@@ -38,20 +37,23 @@ class WebhooksController < ApplicationController
   # Read more on Twilio Security at https://www.twilio.com/docs/security
   private
   def authenticate_twilio_request
-    twilio_signature = request.headers['HTTP_X_TWILIO_SIGNATURE']
+    twilio_signature = request.headers["HTTP_X_TWILIO_SIGNATURE"]
 
     # Helper from twilio-ruby to validate requests.
-    @validator = Twilio::Util::RequestValidator.new ENV['TWILIO_AUTH_TOKEN'] 
+    @validator = Twilio::Security::RequestValidator.new(ENV['TWILIO_AUTH_TOKEN'])
 
     # the POST variables attached to the request (eg "From", "To")
     # Twilio requests only accept lowercase letters. So scrub here:
     post_vars = params.reject {|k, v| k.downcase == k}
     puts post_vars
 
+
     is_twilio_req = @validator.validate(request.url, post_vars, twilio_signature)
 
     unless is_twilio_req
-      render :xml => (Twilio::TwiML::Response.new {|r| r.Hangup}).text, :status => :unauthorized
+      response = Twilio::TwiML::VoiceResponse.new
+      response.hangup
+      render :xml => response.to_s, :status => :unauthorized
       false
     end
   end
