@@ -13,7 +13,7 @@ gem 'coffee-rails', '~> 4.1.0'
 # gem 'therubyracer', platforms: :ruby
 
 # Use Twilio's ruby gem
-gem 'twilio-ruby', '~> 5.0.0'
+gem 'twilio-ruby', '~> 5.56.0'
 
 # Use jquery as the JavaScript library
 gem 'jquery-rails'
